@@ -1,0 +1,50 @@
+{
+  "name": "recruiter-crm",
+  "version": "3.1.0",
+  "description": "Recruiter CRM - gestione candidati, pipeline personalizzabile, richiami, CV e template messaggi",
+  "main": "main.js",
+  "author": "",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win",
+    "dist:portable": "electron-builder --win portable",
+    "publish": "electron-builder --win --publish always"
+  },
+  "dependencies": {
+    "mammoth": "^1.7.2",
+    "pdf-parse": "^1.1.1",
+    "xlsx": "^0.18.5",
+    "electron-updater": "^6.3.0"
+  },
+  "devDependencies": {
+    "electron": "^31.0.0",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.recruitercrm.app",
+    "productName": "Recruiter CRM",
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      "node_modules/**/*"
+    ],
+    "publish": {
+      "provider": "github",
+      "owner": "AlomCRM",
+      "repo": "recruiter-crm-releases"
+    },
+    "win": {
+      "target": [
+        { "target": "nsis", "arch": ["x64"] }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true
+    }
+  }
+}

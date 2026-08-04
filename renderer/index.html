@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8" />
+<title>Recruiter CRM</title>
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<aside id="sidebar">
+  <div class="brand-block">
+    <div class="brand-title sg">Recruiter CRM</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px;">
+      <div class="avatar" id="recruiter-avatar">–</div>
+      <div class="brand-sub" id="recruiter-greeting" style="margin-top:0;">Configura i tuoi dati →</div>
+    </div>
+    <button id="global-search-btn" style="margin-top:12px;width:100%;display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,0.08);color:#B9C6D1;font-size:12.5px;"></button>
+  </div>
+  <nav id="nav">
+    <button class="nav-item" data-tab="dashboard"></button>
+    <button class="nav-item" data-tab="candidati"></button>
+    <button class="nav-item" data-tab="richiami"></button>
+    <button class="nav-item" data-tab="assunzioni"></button>
+    <div class="nav-divider"></div>
+    <button class="nav-item" data-tab="fogli"></button>
+    <button class="nav-item" data-tab="template"></button>
+    <button class="nav-item" data-tab="pipeline"></button>
+    <button class="nav-item" data-tab="recruiter"></button>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="nav-item" id="btn-check-updates"></button>
+    <button class="nav-item" id="btn-restart"></button>
+    <button class="nav-item" id="btn-exit"></button>
+  </div>
+</aside>
+
+<div id="content">
+  <div id="topbar">
+    <div class="title-block">
+      <div class="sg" id="page-title">Cruscotto</div>
+      <div class="sub" id="page-sub"></div>
+    </div>
+    <div class="toolbar" id="page-actions"></div>
+  </div>
+  <div id="banner-area"></div>
+  <div id="scroll-area">
+    <main id="main-area"></main>
+  </div>
+</div>
+
+<div id="modal-area"></div>
+<div id="toast-area"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
