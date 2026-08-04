@@ -350,8 +350,13 @@ function setupAutoUpdater() {
 }
 
 ipcMain.handle("app:check-updates", () => {
-  autoUpdater.checkForUpdates().catch(() => {
-    dialog.showMessageBox({ type: "info", title: "Aggiornamenti", message: "Impossibile controllare in questo momento. Verifica la connessione a internet." });
+  autoUpdater.checkForUpdates().catch((err) => {
+    dialog.showMessageBox({
+      type: "info",
+      title: "Aggiornamenti",
+      message: "Impossibile controllare in questo momento.",
+      detail: `Dettaglio tecnico: ${err && err.message ? err.message : String(err)}`,
+    });
   });
 });
 
