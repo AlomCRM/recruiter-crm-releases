@@ -315,6 +315,8 @@ ipcMain.handle("cv:open", (event, cvPath) => {
 // ---------------------------------------------------------------------------
 // aggiornamenti automatici (richiede una repo GitHub configurata sopra)
 // ---------------------------------------------------------------------------
+let updateCheckIsManual = false;
+
 function setupAutoUpdater() {
   autoUpdater.autoDownload = false;
 
@@ -344,13 +346,27 @@ function setupAutoUpdater() {
     });
   });
 
+  autoUpdater.on("update-not-available", (info) => {
+    if (updateCheckIsManual) {
+      dialog.showMessageBox({
+        type: "info",
+        title: "Aggiornamenti",
+        message: "Hai già la versione più recente installata.",
+        detail: `Versione attuale: ${app.getVersion()}`,
+      });
+    }
+    updateCheckIsManual = false;
+  });
+
   autoUpdater.on("error", () => { /* nessun internet o repo non raggiungibile: ignora silenziosamente */ });
 
   autoUpdater.checkForUpdates().catch(() => {});
 }
 
 ipcMain.handle("app:check-updates", () => {
+  updateCheckIsManual = true;
   autoUpdater.checkForUpdates().catch((err) => {
+    updateCheckIsManual = false;
     dialog.showMessageBox({
       type: "info",
       title: "Aggiornamenti",
