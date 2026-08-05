@@ -34,6 +34,7 @@ const DEFAULT_SETTINGS = {
     { id: "st-rejected", nome: "Rifiutato", isHired: false },
   ],
   recruiter: { nome: "", cognome: "", email: "", telefono: "", azienda: "", sedi: "" },
+  fonti: ["LinkedIn", "Segnalazione", "Portale annunci", "Sito aziendale", "Fiera/Evento", "Altro"],
   templates: [
     {
       id: "tpl-linkedin",
@@ -49,6 +50,11 @@ const DEFAULT_SETTINGS = {
       id: "tpl-negativo",
       nome: "Email - esito negativo",
       corpo: "Gentile {{nome}} {{cognome}},\n\nLa ringrazio per il tempo dedicato al percorso di selezione per la posizione di {{ruolo}}. Al momento abbiamo deciso di proseguire con un altro profilo, ma conserveremo con piacere il suo CV per future opportunità in linea con il suo profilo.\n\nCordiali saluti,\n{{recruiter_nome}} {{recruiter_cognome}}\n{{recruiter_azienda}}",
+    },
+    {
+      id: "tpl-colloquio-link",
+      nome: "Email - invito colloquio con link riunione",
+      corpo: "Gentile {{nome}} {{cognome}},\n\nLe confermo il colloquio per la posizione di {{ruolo}}, fissato per il giorno {{colloquio_data}} alle ore {{colloquio_ora}}.\n\nPotrà collegarsi tramite questo link:\n{{colloquio_link}}\n\n{{colloquio_note}}\n\nResto a disposizione per qualsiasi necessità.\n\nCordiali saluti,\n{{recruiter_nome}} {{recruiter_cognome}}\n{{recruiter_azienda}}\n{{recruiter_telefono}} · {{recruiter_email}}",
     },
   ],
 };
@@ -184,7 +190,13 @@ ipcMain.handle("settings:load", () => {
   try {
     if (fs.existsSync(settingsFile)) {
       const saved = JSON.parse(fs.readFileSync(settingsFile, "utf-8"));
-      return { ...DEFAULT_SETTINGS, ...saved };
+      const merged = { ...DEFAULT_SETTINGS, ...saved };
+      // migrazione: aggiunge i nuovi template predefiniti mancanti senza toccare quelli già personalizzati
+      const savedTemplates = Array.isArray(saved.templates) ? saved.templates : [];
+      const missing = DEFAULT_SETTINGS.templates.filter((dt) => !savedTemplates.some((st) => st.id === dt.id));
+      merged.templates = [...savedTemplates, ...missing];
+      if (!Array.isArray(saved.fonti)) merged.fonti = DEFAULT_SETTINGS.fonti;
+      return merged;
     }
   } catch (e) { /* ignorato */ }
   return DEFAULT_SETTINGS;
@@ -375,6 +387,8 @@ ipcMain.handle("app:check-updates", () => {
     });
   });
 });
+
+ipcMain.handle("app:get-version", () => app.getVersion());
 
 ipcMain.handle("app:restart", () => {
   app.relaunch();

@@ -56,6 +56,20 @@ Tutto in `%APPDATA%\Recruiter CRM\`:
 - `cv\` — i CV caricati
 - `backup-automatici\` — le ultime 10 copie di sicurezza automatiche
 
+## Se un aggiornamento crea problemi (rollback)
+
+Non esiste un "torna indietro" automatico dentro l'app, ma è facile farlo a
+mano, e i tuoi dati non corrono alcun rischio (vivono fuori dal programma):
+
+1. Vai sulla pagina della tua repository GitHub → **Releases**
+2. Trova la versione precedente che funzionava bene (es. 3.1.1 se la 3.1.2
+   ha un problema)
+3. Apri quella release, scarica il file `Recruiter CRM Setup X.Y.Z.exe`
+4. Eseguilo: si installa sopra a quella nuova, riportando il programma
+   indietro
+5. Appena hai sistemato il problema nel codice, pubblichi una versione
+   nuova (con un numero più alto di quella "rotta") come al solito
+
 ## Aggiornamenti automatici (opzionale, come un software vero)
 
 Il programma può controllare da solo se esiste una versione più recente e

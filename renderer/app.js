@@ -46,6 +46,7 @@ let filterDispo = "Tutte";
 let editingForm = null;
 let notified = new Set();
 let pipelineDraft = null;
+let fontiDraft = null;
 let recruiterDraft = null;
 let templateDraft = null;
 let candidatiView = "lista"; // "lista" | "kanban"
@@ -53,7 +54,7 @@ let sortMode = "recenti"; // "recenti" | "nome" | "valutazione" | "ultimoContatt
 let draggedId = null;
 
 const DISPO = ["Full onsite", "Ibrido", "Remoto"];
-const FONTI = ["LinkedIn", "Segnalazione", "Portale annunci", "Sito aziendale", "Fiera/Evento", "Altro"];
+const FONTI_DEFAULT = ["LinkedIn", "Segnalazione", "Portale annunci", "Sito aziendale", "Fiera/Evento", "Altro"];
 const PRIORITA = ["Alta", "Media", "Bassa"];
 const PRIORITY_COLOR = {
   Alta: { bg: "var(--brick-soft)", fg: "var(--brick)" },
@@ -162,6 +163,11 @@ async function persistSettings() {
   render();
   setInterval(checkNotifications, 30000);
   checkNotifications();
+  if (window.api.getAppVersion) {
+    const v = await window.api.getAppVersion();
+    const el = document.getElementById("app-version-label");
+    if (el) el.textContent = `versione ${v}`;
+  }
 })();
 
 function buildSidebar() {
@@ -1433,15 +1439,31 @@ function openColumnForm(colId) {
 
 function viewPipeline() {
   pipelineDraft = settings.stages.map((s) => ({ ...s }));
+  fontiDraft = [...(settings.fonti || FONTI_DEFAULT)];
   return `
-    <div class="card" style="padding:18px;">
+    <div class="card" style="padding:18px;margin-bottom:16px;">
       <div class="section-heading">Fasi della pipeline</div>
       <div style="font-size:13px;color:var(--ink-soft);margin-bottom:14px;">
         Aggiungi, rinomina, riordina o elimina le fasi. Spunta il pallino <b>"Fase di assunzione conclusa"</b> su UNA sola fase (di solito l'ultima, es. "Assunto"): i candidati che arrivano lì finiranno automaticamente nella sezione Assunzioni e conteranno nel tasso di conversione del cruscotto.
       </div>
       <div id="stage-list" style="display:flex;flex-direction:column;gap:8px;"></div>
       <button class="btn btn-outline" id="add-stage" style="margin-top:12px;">${ICONS.plus}Aggiungi fase</button>
+    </div>
+    <div class="card" style="padding:18px;">
+      <div class="section-heading">Fonti candidati</div>
+      <div style="font-size:13px;color:var(--ink-soft);margin-bottom:12px;">
+        Le voci disponibili nel campo "Fonte" della scheda candidato. Aggiungine o togline quante ne vuoi.
+      </div>
+      <div class="skills-editor" id="fonti-editor"></div>
+      <input id="new-fonte" placeholder="Aggiungi fonte e premi Invio" style="margin-top:8px;border:1px solid var(--hairline);border-radius:7px;padding:8px 10px;outline:none;width:100%;box-sizing:border-box;" />
     </div>`;
+}
+
+function renderFontiEditor() {
+  const el = document.getElementById("fonti-editor");
+  if (!el) return;
+  el.innerHTML = fontiDraft.map((f, i) => `<span class="skill-tag">${esc(f)}<button data-i="${i}">${ICONS.x}</button></span>`).join("") || `<span style="font-size:12px;color:var(--ink-soft);">Nessuna fonte ancora.</span>`;
+  el.querySelectorAll("button[data-i]").forEach((b) => b.onclick = () => { fontiDraft.splice(Number(b.dataset.i), 1); renderFontiEditor(); });
 }
 
 function renderStageList() {
@@ -1485,6 +1507,14 @@ function bindPipelineEvents() {
     pipelineDraft.push({ id: "st-" + uid(), nome: "Nuova fase", isHired: false });
     renderStageList();
   };
+  renderFontiEditor();
+  document.getElementById("new-fonte").onkeydown = (e) => {
+    if (e.key === "Enter" && e.target.value.trim()) {
+      fontiDraft.push(e.target.value.trim());
+      e.target.value = "";
+      renderFontiEditor();
+    }
+  };
 }
 
 function savePipeline() {
@@ -1499,8 +1529,9 @@ function savePipeline() {
     persist();
   }
   settings.stages = pipelineDraft;
+  settings.fonti = fontiDraft;
   persistSettings();
-  showToast("Pipeline aggiornata.");
+  showToast("Pipeline e fonti aggiornate.");
   render();
 }
 
@@ -1570,7 +1601,8 @@ function bindTemplateEvents() {
   });
 }
 
-const PLACEHOLDERS = ["nome", "cognome", "ruolo", "disponibilita", "recruiter_nome", "recruiter_cognome", "recruiter_email", "recruiter_telefono", "recruiter_azienda", "recruiter_sedi"];
+const PLACEHOLDERS = ["nome", "cognome", "ruolo", "disponibilita", "recruiter_nome", "recruiter_cognome", "recruiter_email", "recruiter_telefono", "recruiter_azienda", "recruiter_sedi", "colloquio_data", "colloquio_ora", "colloquio_link", "colloquio_note"];
+const COLLOQUIO_FIELDS = ["colloquio_data", "colloquio_ora", "colloquio_link", "colloquio_note"];
 
 function openTemplateForm(id) {
   const t = id ? settings.templates.find((x) => x.id === id) : { id: null, nome: "", corpo: "" };
@@ -1585,7 +1617,7 @@ function openTemplateForm(id) {
         </div>
         <label class="field" style="margin-bottom:10px;"><span>Nome template</span><input id="tf-nome" value="${esc(templateDraft.nome)}" /></label>
         <label class="field"><span>Testo del messaggio</span><textarea id="tf-corpo" rows="8">${esc(templateDraft.corpo)}</textarea></label>
-        <div style="margin-top:10px;font-size:12px;color:var(--ink-soft);">Clicca per inserire un campo:</div>
+        <div style="margin-top:10px;font-size:12px;color:var(--ink-soft);">Clicca per inserire un campo (quelli "colloquio_" fanno comparire dei campi da compilare al momento di generare il messaggio, es. link Teams):</div>
         <div id="placeholder-chips" style="margin-top:6px;">
           ${PLACEHOLDERS.map((p) => `<span class="placeholder-chip" data-p="${p}" style="cursor:pointer;">{{${p}}}</span>`).join("")}
         </div>
@@ -1620,14 +1652,40 @@ function openTemplateForm(id) {
   };
 }
 
-function fillTemplate(corpo, candidato) {
+function fillTemplate(corpo, candidato, extra) {
   const r = settings.recruiter;
   const map = {
     nome: candidato.nome, cognome: candidato.cognome, ruolo: candidato.ruolo || "", disponibilita: candidato.disponibilita,
     recruiter_nome: r.nome, recruiter_cognome: r.cognome, recruiter_email: r.email,
     recruiter_telefono: r.telefono, recruiter_azienda: r.azienda, recruiter_sedi: r.sedi,
+    ...(extra || {}),
   };
   return corpo.replace(/{{\s*(\w+)\s*}}/g, (m, k) => (map[k] !== undefined && map[k] !== "" ? map[k] : ""));
+}
+
+// converte testo semplice in HTML per il copia/incolla, rendendo cliccabile
+// il link inserito (così se lo incolli in Outlook/Gmail resta un vero link)
+function textToClipboardHtml(testo, linkUrl) {
+  let html = esc(testo).replace(/\n/g, "<br>");
+  if (linkUrl && linkUrl.trim()) {
+    const safeLink = esc(linkUrl.trim());
+    html = html.split(esc(linkUrl.trim())).join(`<a href="${safeLink}">${safeLink}</a>`);
+  }
+  return `<div>${html}</div>`;
+}
+
+async function copyRichText(testo, linkUrl) {
+  try {
+    const html = textToClipboardHtml(testo, linkUrl);
+    const item = new ClipboardItem({
+      "text/plain": new Blob([testo], { type: "text/plain" }),
+      "text/html": new Blob([html], { type: "text/html" }),
+    });
+    await navigator.clipboard.write([item]);
+    return true;
+  } catch (e) {
+    try { await navigator.clipboard.writeText(testo); return true; } catch (e2) { return false; }
+  }
 }
 
 function openMessageModal(candidateId) {
@@ -1635,10 +1693,12 @@ function openMessageModal(candidateId) {
   if (!c) return;
   if (settings.templates.length === 0) { showToast("Crea prima un template nella sezione Template messaggi."); return; }
   let selectedId = settings.templates[0].id;
+  let colloquio = { colloquio_data: "", colloquio_ora: "", colloquio_link: "", colloquio_note: "" };
   const area = document.getElementById("modal-area");
   const draw = () => {
     const tpl = settings.templates.find((t) => t.id === selectedId);
-    const testo = fillTemplate(tpl.corpo, c);
+    const usesColloquio = COLLOQUIO_FIELDS.some((f) => tpl.corpo.includes(`{{${f}}}`));
+    const testo = fillTemplate(tpl.corpo, c, colloquio);
     area.innerHTML = `
       <div class="overlay">
         <div class="modal">
@@ -1649,26 +1709,46 @@ function openMessageModal(candidateId) {
           <label class="field" style="margin-bottom:12px;"><span>Template</span>
             <select id="mm-select">${settings.templates.map((t) => `<option value="${t.id}" ${t.id === selectedId ? "selected" : ""}>${esc(t.nome)}</option>`).join("")}</select>
           </label>
+          ${usesColloquio ? `
+          <div class="section-box" style="margin-bottom:12px;">
+            <div class="section-title">${ICONS.clock} Dati del colloquio</div>
+            <div class="form-grid">
+              <label class="field"><span>Data</span><input type="date" id="mm-data" value="${colloquio.colloquio_data}" /></label>
+              <label class="field"><span>Ora</span><input type="time" id="mm-ora" value="${colloquio.colloquio_ora}" /></label>
+            </div>
+            <label class="field"><span>Link riunione (Teams, Zoom, Meet…)</span><input id="mm-link" placeholder="https://teams.microsoft.com/..." value="${esc(colloquio.colloquio_link)}" /></label>
+            <label class="field"><span>Note aggiuntive (facoltative)</span><input id="mm-note" placeholder="es. porti con sé un documento d'identità" value="${esc(colloquio.colloquio_note)}" /></label>
+          </div>` : ""}
           <div class="template-preview-box" id="mm-preview">${esc(testo)}</div>
           <div class="modal-footer">
             <button class="btn-secondary" id="close-mm2">Chiudi</button>
             ${c.email ? `<button class="btn-secondary" id="open-mail-mm">${ICONS.file} Apri in Email</button>` : ""}
-            <button class="btn-save" id="copy-mm">${ICONS.copy} Copia negli appunti</button>
+            <button class="btn-save" id="copy-mm">${ICONS.copy} Copia (link cliccabile)</button>
           </div>
         </div>
       </div>`;
     document.getElementById("close-mm").onclick = () => area.innerHTML = "";
     document.getElementById("close-mm2").onclick = () => area.innerHTML = "";
     document.getElementById("mm-select").onchange = (e) => { selectedId = e.target.value; draw(); };
+    if (usesColloquio) {
+      document.getElementById("mm-data").oninput = (e) => { colloquio.colloquio_data = e.target.value ? new Date(e.target.value).toLocaleDateString("it-IT") : ""; refreshPreview(); };
+      document.getElementById("mm-ora").oninput = (e) => { colloquio.colloquio_ora = e.target.value; refreshPreview(); };
+      document.getElementById("mm-link").oninput = (e) => { colloquio.colloquio_link = e.target.value; refreshPreview(); };
+      document.getElementById("mm-note").oninput = (e) => { colloquio.colloquio_note = e.target.value; refreshPreview(); };
+    }
+    function refreshPreview() {
+      document.getElementById("mm-preview").textContent = fillTemplate(tpl.corpo, c, colloquio);
+    }
     const mailBtn = document.getElementById("open-mail-mm");
     if (mailBtn) mailBtn.onclick = () => {
       const subject = encodeURIComponent(`${tpl.nome} — ${c.nome} ${c.cognome}`);
-      const body = encodeURIComponent(testo);
+      const body = encodeURIComponent(fillTemplate(tpl.corpo, c, colloquio));
       window.open(`mailto:${encodeURIComponent(c.email)}?subject=${subject}&body=${body}`, "_blank");
     };
     document.getElementById("copy-mm").onclick = async () => {
-      try { await navigator.clipboard.writeText(testo); showToast("Messaggio copiato negli appunti."); }
-      catch (e) { showToast("Copia non riuscita: seleziona e copia manualmente."); }
+      const testoFinale = fillTemplate(tpl.corpo, c, colloquio);
+      const ok = await copyRichText(testoFinale, colloquio.colloquio_link);
+      showToast(ok ? "Messaggio copiato — il link resta cliccabile se incollato in Outlook/Gmail." : "Copia non riuscita: seleziona e copia manualmente.");
     };
   };
   draw();
@@ -1719,7 +1799,7 @@ function renderForm() {
             <select id="f-stato">${settings.stages.map((s) => `<option value="${s.id}" ${f.stato === s.id ? "selected" : ""}>${esc(s.nome)}</option>`).join("")}</select>
           </label>
           <label class="field"><span>Fonte</span>
-            <select id="f-fonte"><option value="">—</option>${FONTI.map((s) => `<option ${f.fonte === s ? "selected" : ""}>${s}</option>`).join("")}</select>
+            <select id="f-fonte"><option value="">—</option>${(settings.fonti || FONTI_DEFAULT).map((s) => `<option ${f.fonte === s ? "selected" : ""}>${s}</option>`).join("")}</select>
           </label>
           <label class="field"><span>Azienda cliente (se agenzia)</span><input id="f-cliente" value="${esc(f.clienteAzienda)}" /></label>
           <label class="field"><span>Priorità</span>
@@ -1858,11 +1938,23 @@ function renderTimeline() {
   if (!el) return;
   if (editingForm.storico.length === 0) { el.innerHTML = `<span style="font-size:12px;color:var(--ink-soft);">Nessuna nota ancora. Ogni chiamata o aggiornamento resterà qui con data e ora.</span>`; return; }
   el.innerHTML = editingForm.storico.map((n, i) => `
-    <div class="timeline-item">
-      <span>${esc(n.testo)}</span>
-      <span class="date mono">${new Date(n.data).toLocaleDateString("it-IT")} <button data-i="${i}">${ICONS.x}</button></span>
+    <div class="timeline-item" data-i="${i}">
+      <span class="timeline-text">${esc(n.testo)}</span>
+      <span class="date mono">${new Date(n.data).toLocaleDateString("it-IT")} <button class="timeline-edit" data-i="${i}" title="Modifica">${ICONS.edit}</button><button class="timeline-del" data-i="${i}" title="Elimina">${ICONS.x}</button></span>
     </div>`).join("");
-  el.querySelectorAll("button[data-i]").forEach((b) => b.onclick = () => { editingForm.storico.splice(Number(b.dataset.i), 1); renderTimeline(); });
+  el.querySelectorAll(".timeline-del").forEach((b) => b.onclick = () => { editingForm.storico.splice(Number(b.dataset.i), 1); renderTimeline(); });
+  el.querySelectorAll(".timeline-edit").forEach((b) => b.onclick = () => {
+    const i = Number(b.dataset.i);
+    const item = el.querySelector(`.timeline-item[data-i="${i}"] .timeline-text`);
+    const current = editingForm.storico[i].testo;
+    item.outerHTML = `<input type="text" class="timeline-edit-input" data-i="${i}" value="${esc(current)}" style="flex:1;border:1px solid var(--navy-soft);border-radius:5px;padding:3px 6px;font-size:12.5px;" />`;
+    const input = el.querySelector(`.timeline-edit-input[data-i="${i}"]`);
+    input.focus();
+    input.select();
+    const save = () => { editingForm.storico[i].testo = input.value.trim() || current; renderTimeline(); };
+    input.onblur = save;
+    input.onkeydown = (e) => { if (e.key === "Enter") save(); if (e.key === "Escape") renderTimeline(); };
+  });
 }
 
 function saveForm() {

@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("api", {
   restartApp: () => ipcRenderer.invoke("app:restart"),
   exitApp: () => ipcRenderer.invoke("app:exit"),
   checkUpdates: () => ipcRenderer.invoke("app:check-updates"),
+  getAppVersion: () => ipcRenderer.invoke("app:get-version"),
   loadSheets: () => ipcRenderer.invoke("sheets:load"),
   saveSheets: (sheets) => ipcRenderer.invoke("sheets:save", sheets),
   listAutoBackups: () => ipcRenderer.invoke("backup:list"),

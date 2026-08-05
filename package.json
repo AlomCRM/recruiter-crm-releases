@@ -1,6 +1,6 @@
 {
   "name": "recruiter-crm",
-  "version": "3.1.1",
+  "version": "3.1.5",
   "description": "Recruiter CRM - gestione candidati, pipeline personalizzabile, richiami, CV e template messaggi",
   "main": "main.js",
   "author": "",
